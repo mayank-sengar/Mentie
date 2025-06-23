@@ -15,6 +15,7 @@ const mentorProfileSchema=new mongoose.Schema({
    expertise:
    [{type:String}],
 
+   //arr of obj
    availability:[{
     day:{type:String},
     slots:[{type: String}]

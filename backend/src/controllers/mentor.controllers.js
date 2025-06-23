@@ -52,7 +52,7 @@ const searchMentors = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Search query is required");
   }
 
-  // Search in userName or fullName of linked User
+
   const mentors = await MentorProfile.find()
     .populate({
       path: "userId",
@@ -62,10 +62,10 @@ const searchMentors = asyncHandler(async (req, res) => {
           { fullName: { $regex: query, $options: "i" } }
         ]
       },
-      select: "userName fullName avatar expertise" // you can customize fields here
+      select: "userName fullName avatar expertise" 
     });
 
-  // Filter out null userIds (no match on user)
+
   const filtered = mentors.filter((mentor) => mentor.userId !== null);
 
   res.status(200).json(new ApiResponse(200, filtered, "Mentors fetched successfully"));
@@ -91,6 +91,9 @@ const updateAvailability = asyncHandler(async (req, res) => {
 
   return res.status(200).json(new ApiResponse(200, mentor, "Availability updated"));
 });
+
+
+
 
 
 

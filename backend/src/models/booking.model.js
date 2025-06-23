@@ -11,7 +11,7 @@ mentorId:{
     ref:"User",
 },
 date:{
-    type:String,
+    type:Date,
     required:true,
 },
 time:{
