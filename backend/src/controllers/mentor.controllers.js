@@ -4,42 +4,32 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 
-const createOrUpdateMentorProfile= asyncHandler( async ( req,res )=>{
+const createOrUpdateMentorProfile = asyncHandler(async (req, res) => {
+    const { bio, expertise, availability } = req.body;
+    // Correct lookup
+    let existingProfile = await MentorProfile.findOne({ userId: req.user._id });
 
-    const {bio,expertise,availability}  = req.body;
-    
-    const exisitngProfile = await MentorProfile.findById(req.user._id);
- 
-
-    if(exisitngProfile){
-        exisitngProfile.bio = bio;
-        exisitngProfile.expertise = expertise;
-        exisitngProfile.availability=availability;
-
+    if (existingProfile) {
+        existingProfile.bio = bio;
+        existingProfile.expertise = expertise;
+        existingProfile.availability = availability;
         await existingProfile.save();
-
         return res.status(200).json(new ApiResponse(200, existingProfile, "Mentor profile updated"));
     }
 
-     const createProfile = await MentorProfile.create({
+    const createProfile = await MentorProfile.create({
         userId: req.user._id,
         bio,
         expertise,
         availability
-     })
-     return res.status(200).json(new ApiResponse(200,createProfile,"Mentor profile created successfully"))
+    });
+    return res.status(200).json(new ApiResponse(200, createProfile, "Mentor profile created successfully"));
+});
 
-
-
-})
-
-
-const getMentorProfile  = asyncHandler(async (req,res)=>{
-    
-    const mentorProfile= await MentorProfile.findById(req.user._id);
-
-    if(!mentorProfile){
-        throw new ApiError(400,"Mentor Profile does not exist ")
+const getMentorProfile = asyncHandler(async (req, res) => {
+    const mentorProfile = await MentorProfile.findOne({ userId: req.user._id });
+    if (!mentorProfile) {
+        throw new ApiError(400, "Mentor Profile does not exist ")
     }
 
     return res.status(200).json( new ApiResponse(200,mentorProfile,"Mentor Profile fetched successfully"));

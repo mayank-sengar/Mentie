@@ -1,5 +1,4 @@
 import { mongoose } from 'mongoose';
-import { MentorProfile } from './mentorProfile.model';
 
 
 const mentorProfileSchema=new mongoose.Schema({

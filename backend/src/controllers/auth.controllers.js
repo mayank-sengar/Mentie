@@ -1,7 +1,7 @@
 import {asyncHandler} from "../utils/asyncHandler.js"
-import { ApiError } from "../utils/ApiError"
-import {ApiResponse} from "../utils/ApiResponse.js"
-import { uploadOnCloudinary } from "../utils/Cloudinary.js"
+import { ApiError } from "../utils/ApiError.js"
+import { ApiResponse } from "../utils/ApiResponse.js"
+import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import jwt from 'jsonwebtoken'
 import mongoose from "mongoose" 
 
@@ -11,7 +11,7 @@ import {User} from "../models/user.model.js"
 const generateAccessandRefreshTokens = async (userId) => {
     try{
     const user=await User.findById(userId);
-    const accessTokenn = user.generateAccessToken();
+    const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
 
     user.refreshToken=refreshToken;
@@ -122,36 +122,33 @@ const loginUser = asyncHandler( async (req,res)=>{
     throw new ApiError( 500,"Something went wrong in accessToken or refreshToken method call")
        }
 
-    const loggedInUser=await User.findById(user._id).
-     select(
-        "-password -refreshToken"
-     )
     
-      const options ={
-        //modifable only by server
-        httpOnly :true,
-        secure : true
-     }
-     return res
-     .status(200)
-     .cookie("accessToken",accessToken,options)
-     .cookie("refreshToken",refreshToken,options)
-     .json(         
-        new ApiResponse(
-            200, 
-            {
-               
-                userPresent: loggedInUser, accessToken, refreshToken
-            },
-            
-            "User logged in successfully"
+    const loggedInUser = await User.findById(userPresent._id)
+        .select("-password -refreshToken");
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    };
+   
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(
+                200,
+                { user: loggedInUser },
+                "User logged in successfully"
+            )
         )
-     )
 
 })
 
 const logoutUser=asyncHandler( async ( req,res)=>{
 
+
+    
    
      await User.findByIdAndUpdate(
     req.user._id,
@@ -203,9 +200,42 @@ const changeCurrentPassword=asyncHandler(async(req,res)=>{
     json(new ApiResponse(200,{},"Password updated successfully"))
     
 })
+const updateUserProfile = asyncHandler(async (req, res) => {
+    const { fullName, mobileNumber } = req.body;
+    const user = req.user;
+
+    let avatarUrl = user.avatar; // keep existing avatar by default
+    if (req.files?.avatar && req.files.avatar[0]?.path) {
+        const avatar = await uploadOnCloudinary(req.files.avatar[0].path);
+        if (avatar?.url) {
+            avatarUrl = avatar.url;
+        }
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        {
+            fullName,
+            avatar: avatarUrl,
+            mobileNumber,
+        },
+        {
+            new: true,
+        }
+    );
+
+    if (!updatedUser) {
+        throw new ApiError(404, "User not found or update failed");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, updatedUser, "User profile updated successfully")
+    );
+});
 
 
-const refreshAccessToke= asyncHandler(async(req,res)=>{
+
+const refreshAccessToken= asyncHandler(async(req,res)=>{
     const incommingRefreshToken = req.cookie.refreshToken || req.body.refreshToken;
     
     if(!incommingRefreshToken){
@@ -253,7 +283,7 @@ const refreshAccessToke= asyncHandler(async(req,res)=>{
     }
 })
 
-export {generateAccessandRefreshTokens,registerUser,loginUser,changeCurrentPassword,refreshAccessToke,logoutUser,getCurrentUser}
+export {generateAccessandRefreshTokens,registerUser,loginUser,changeCurrentPassword,refreshAccessToken,updateUserProfile,logoutUser,getCurrentUser}
 
 
 
@@ -263,4 +293,3 @@ export {generateAccessandRefreshTokens,registerUser,loginUser,changeCurrentPassw
 
 
 
-   

@@ -1,8 +1,8 @@
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler } from "../utils/asyncHandler";
-import { ApiResponse } from "../utils/ApiResponse";
-import { Booking } from "../models/booking.model";
-import { MentorProfile } from "../models/mentorProfile.model";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { Booking } from "../models/booking.model.js";
+import { MentorProfile } from "../models/mentorProfile.model.js";
 
 
 const createBooking = asyncHandler(async(req,res)=>{
@@ -99,13 +99,12 @@ return res.status(200).json(new ApiResponse(200, mentorBookings, "Mentor booking
 
 
 const updateBookingStatus = asyncHandler ( async (req,res)=> {
-
     const {bookingId , status } = req.body;
 
-    const booking =await Booking.findById({bookingId});
+    const booking =await Booking.findById(bookingId);
 
     const userId = booking.userId;
-    const mentorId = booking.userId;
+    const mentorId = booking.mentorId;
 
     if( (req.user._id != userId)  && (req.user._id != mentorId) ){
         throw new ApiError(401,"Unauthorized access of booking updation")
@@ -116,19 +115,33 @@ const updateBookingStatus = asyncHandler ( async (req,res)=> {
     if(!validStatus.includes(status)){
         throw new ApiError(400, "Invalid status");
     }
-    //todo- cancel and readd slot 
 
-    const updateStatus = await Booking.findByIdAndUpdate(bookingId, {
-        status : status
-    },
-         {new: true}
+    const updateStatus = await Booking.findByIdAndUpdate(
+        bookingId,
+        { status: status },
+        { new: true }
     );
     
-    if (!updated) throw new ApiError(404, "Booking not found");
+    if (!updateStatus) throw new ApiError(404, "Booking not found");
 
-  res.status(200).json(new ApiResponse(200, updated, "Booking status updated"));
+    // Re-add slot if booking is cancelled
+    if (status === "cancelled") {
+        const mentorProfile = await MentorProfile.findOne({ userId: booking.mentorId });
+        if (mentorProfile) {
+            const day = new Date(booking.date).toLocaleDateString("en-US", { weekday: "long" });
+            mentorProfile.availability = mentorProfile.availability.map((item) => {
+                if (item.day === day) {
+                    if (!item.slots.includes(booking.time)) {
+                        item.slots.push(booking.time);
+                    }
+                }
+                return item;
+            });
+            await mentorProfile.save();
+        }
+    }
 
-
+    res.status(200).json(new ApiResponse(200, updateStatus, "Booking status updated"));
 }
 )
 
